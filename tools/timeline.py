@@ -67,8 +67,18 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
         19–21 августа 1991 года
         28 октября — 2 ноября 1991 года
         июнь 1991 года
+        Ночь с 4 на 5 июня 1993 года
+        Ночь с 26 на 27 февраля (11 на 12 марта) 1917 года
+        Ночь с 6 (19) на 7 (20) января 1918 года
+        Ночь с 31 января на 14 февраля 1918 года
+        1943 год
+        1943 год (итог)
+        1965–1973 годы
 
     Неопределённый день месяца помещается после точных дат этого месяца.
+    Неопределённые месяц и день (формат «только год» и «диапазон лет»)
+    помещаются после всех датированных событий этого года.
+    Ночные даты сортируются по начальной дате ночи.
     """
     value = normalize_label(label)
 
@@ -99,6 +109,36 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
         day, month_name, year = match.groups()
         return int(year), MONTHS[month_name], int(day), 0
 
+    # Ночь с 4 на 5 июня 1993 года,
+    # Ночь с 26 на 27 февраля (11 на 12 марта) 1917 года
+    # Начальная дата ночи — первый указанный день, месяц — из первого месяца.
+    match = re.fullmatch(
+        r"ночь с (\d{1,2}) на (\d{1,2}) ([а-яё]+)(?: \((\d{1,2}) на (\d{1,2}) ([а-яё]+)\))? (\d{4}) года",
+        value,
+    )
+    if match:
+        day, _, month_name, _, _, _, year = match.groups()
+        return int(year), MONTHS[month_name], int(day), 0
+
+    # Ночь с 6 (19) на 7 (20) января 1918 года,
+    # Ночь с 11 (23) на 12 (24) марта 1801 года
+    match = re.fullmatch(
+        r"ночь с (\d{1,2}) \((\d{1,2})\) на (\d{1,2}) \((\d{1,2})\) ([а-яё]+) (\d{4}) года",
+        value,
+    )
+    if match:
+        day, _, _, _, month_name, year = match.groups()
+        return int(year), MONTHS[month_name], int(day), 0
+
+    # Ночь с 31 января на 14 февраля 1918 года
+    match = re.fullmatch(
+        r"ночь с (\d{1,2}) ([а-яё]+) на (\d{1,2}) ([а-яё]+) (\d{4}) года",
+        value,
+    )
+    if match:
+        day, month_name, _, _, year = match.groups()
+        return int(year), MONTHS[month_name], int(day), 0
+
     # июнь 1991 года
     match = re.fullmatch(r"([а-яё]+) (\d{4}) года", value)
     if match:
@@ -106,6 +146,17 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
 
         # День 32 означает: после всех точных дат этого месяца.
         return int(year), MONTHS[month_name], 32, 1
+
+    # 1943 год, 1943 год (итог)
+    match = re.fullmatch(r"(\d{4}) год(?:\s*\(.+\))?", value)
+    if match:
+        # Месяц 13 означает: после всех датированных событий этого года.
+        return int(match.group(1)), 13, 0, 2
+
+    # 1965-1973 годы
+    match = re.fullmatch(r"(\d{4})-(\d{4}) годы", value)
+    if match:
+        return int(match.group(1)), 13, 0, 1
 
     raise ValueError(f"Не удалось распознать дату: {label!r}")
 
