@@ -162,6 +162,7 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
         19–21 августа 1991 года
         28 октября — 2 ноября 1991 года
         5 (17) сентября 1809 года
+        30 апреля (13 мая) 1918 года
         28 декабря 1809 (9 января 1810) года
         июнь 1991 года
         Ночь с 4 на 5 июня 1993 года
@@ -213,6 +214,16 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
     )
     if match:
         day, month_name, year = match.groups()
+        return int(year), MONTHS[month_name], int(day), 0
+
+    # 30 апреля (13 мая) 1918 года
+    # Для межстилевых дат одного года сортируем по старому стилю.
+    match = re.fullmatch(
+        r"(\d{1,2}) ([а-яё]+) \((\d{1,2}) ([а-яё]+)\) (\d{1,4}) года",
+        value,
+    )
+    if match:
+        day, month_name, _, _, year = match.groups()
         return int(year), MONTHS[month_name], int(day), 0
 
     # 28 декабря 1809 (9 января 1810) года
