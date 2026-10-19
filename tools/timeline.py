@@ -165,6 +165,8 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
         30 апреля (13 мая) 1918 года
         28 декабря 1809 (9 января 1810) года
         июнь 1991 года
+        апрель — 16 ноября 1920 года
+        июнь — июль 1917 года
         Ночь с 4 на 5 июня 1993 года
         Ночь с 26 на 27 февраля (11 на 12 марта) 1917 года
         Ночь с 6 (19) на 7 (20) января 1918 года
@@ -265,6 +267,24 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
     if match:
         day, month_name, _, _, year = match.groups()
         return int(year), MONTHS[month_name], int(day), 0
+
+    # апрель - 16 ноября 1920 года
+    match = re.fullmatch(
+        r"([а-яё]+)-(\d{1,2}) ([а-яё]+) (\d{1,4}) года",
+        value,
+    )
+    if match:
+        month_name, _, _, year = match.groups()
+        return int(year), MONTHS[month_name], 32, 1
+
+    # июнь - июль 1917 года
+    match = re.fullmatch(
+        r"([а-яё]+)-([а-яё]+) (\d{1,4}) года",
+        value,
+    )
+    if match:
+        month_name, _, year = match.groups()
+        return int(year), MONTHS[month_name], 32, 1
 
     # июнь 1991 года
     match = re.fullmatch(r"([а-яё]+) (\d{1,4}) года", value)
