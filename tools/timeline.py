@@ -161,6 +161,8 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
         23 января 1991 года
         19–21 августа 1991 года
         28 октября — 2 ноября 1991 года
+        15 ноября 1884 года — 26 февраля 1885 года
+        17 ноября 1991 года — 31 марта 1995 года
         5 (17) сентября 1809 года
         30 апреля (13 мая) 1918 года
         28 декабря 1809 (9 января 1810) года
@@ -176,11 +178,23 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
         1965–1973 годы
 
     Неопределённый день месяца помещается после точных дат этого месяца.
+    Период, начинающийся в конкретный день, ставится после события
+    этого дня и перед следующим днём.
     Неопределённые месяц и день (формат «только год» и «диапазон лет»)
     помещаются после всех датированных событий этого года.
     Ночные даты сортируются по начальной дате ночи.
     """
     value = normalize_label(label)
+
+    # 15 ноября 1884 года - 26 февраля 1885 года
+    # 17 ноября 1991 года - 31 марта 1995 года
+    match = re.fullmatch(
+        r"(\d{1,2}) ([а-яё]+) (\d{1,4}) года-(\d{1,2}) ([а-яё]+) (\d{1,4}) года",
+        value,
+    )
+    if match:
+        day, month_name, year, _, _, _ = match.groups()
+        return int(year), MONTHS[month_name], int(day), 1
 
     # 28 октября - 2 ноября 1991 года
     match = re.fullmatch(
@@ -189,7 +203,7 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
     )
     if match:
         day, month_name, _, _, year = match.groups()
-        return int(year), MONTHS[month_name], int(day), 0
+        return int(year), MONTHS[month_name], int(day), 1
 
     # 19-21 августа 1991 года
     match = re.fullmatch(
@@ -198,7 +212,7 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
     )
     if match:
         start_day, _, month_name, year = match.groups()
-        return int(year), MONTHS[month_name], int(start_day), 0
+        return int(year), MONTHS[month_name], int(start_day), 1
 
     # 23 января 1991 года
     match = re.fullmatch(
