@@ -8,6 +8,7 @@
 
 - [Ассирийская ОПГ](Assiriyskaya/README.md)
 - [Дагестанская ОПГ](Dagestanskaya/README.md)
+- [Измайловская ОПГ](Izmaylovskaya/README.md)
 - [Люберецкая ОПГ](Lyuberetskaya/README.md)
 - [Подольская ОПГ](Podolskaya/README.md)
 - [Солнцевская ОПГ](Solntsevskaya/README.md)
