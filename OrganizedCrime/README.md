@@ -6,6 +6,8 @@
 
 ## Группировки
 
+- [Ассирийская ОПГ](Assiriyskaya/README.md)
+
 - [Люберецкая ОПГ](Lyuberetskaya/README.md)
 - [Подольская ОПГ](Podolskaya/README.md)
 - [Солнцевская ОПГ](Solntsevskaya/README.md)
