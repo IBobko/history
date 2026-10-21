@@ -38,6 +38,13 @@ MONTHS = {
     "декабря": 12,
 }
 
+SEASONS = {
+    "весна": 3,
+    "лето": 6,
+    "осень": 9,
+    "зима": 12,
+}
+
 MONTH_NAMES = (
     "января",
     "февраля",
@@ -173,6 +180,9 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
         Ночь с 26 на 27 февраля (11 на 12 марта) 1917 года
         Ночь с 6 (19) на 7 (20) января 1918 года
         Ночь с 31 января на 14 февраля 1918 года
+        Ночь на 3 июня 2026 года
+        весна 1998 года
+        осень 2026 года
         1943 год
         1943 год (итог)
         1965–1973 годы
@@ -282,6 +292,21 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
         day, month_name, _, _, year = match.groups()
         return int(year), MONTHS[month_name], int(day), 0
 
+    # Ночь на 3 июня 2026 года
+    # Такая ночь начинается накануне указанного дня.
+    match = re.fullmatch(
+        r"ночь на (\d{1,2}) ([а-яё]+) (\d{1,4}) года",
+        value,
+    )
+    if match:
+        day, month_name, year = match.groups()
+
+        if month_name not in MONTHS:
+            raise ValueError(f"Не удалось распознать дату: {label!r}")
+
+        start = date(int(year), MONTHS[month_name], int(day)) - timedelta(days=1)
+        return start.year, start.month, start.day, 0
+
     # апрель - 16 ноября 1920 года
     match = re.fullmatch(
         r"([а-яё]+)-(\d{1,2}) ([а-яё]+) (\d{1,4}) года",
@@ -300,10 +325,21 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
         month_name, _, year = match.groups()
         return int(year), MONTHS[month_name], 32, 1
 
+    # весна 1998 года, лето 1998 года, осень 2026 года, зима 1998 года
+    # Сезон соотносится с первым месяцем сезона и ставится после
+    # всех точных дат этого месяца.
+    match = re.fullmatch(r"(весна|лето|осень|зима) (\d{1,4}) года", value)
+    if match:
+        season_name, year = match.groups()
+        return int(year), SEASONS[season_name], 32, 1
+
     # июнь 1991 года
     match = re.fullmatch(r"([а-яё]+) (\d{1,4}) года", value)
     if match:
         month_name, year = match.groups()
+
+        if month_name not in MONTHS:
+            raise ValueError(f"Не удалось распознать дату: {label!r}")
 
         # День 32 означает: после всех точных дат этого месяца.
         return int(year), MONTHS[month_name], 32, 1
