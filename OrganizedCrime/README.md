@@ -6,6 +6,8 @@
 
 ## Группировки
 
+- [Бауманская ОПГ](Baumanskaya/README.md)
+
 - [Ассирийская ОПГ](Assiriyskaya/README.md)
 - [Дагестанская ОПГ](Dagestanskaya/README.md)
 - [Измайловская ОПГ](Izmaylovskaya/README.md)
