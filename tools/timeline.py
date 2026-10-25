@@ -174,6 +174,12 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
         30 апреля (13 мая) 1918 года
         28 декабря 1809 (9 января 1810) года
         июнь 1991 года
+        начало 1998 года
+        середина 1998 года
+        конец 1998 года
+        начало июня 1991 года
+        середина июня 1991 года
+        конец июня 1991 года
         апрель — 16 ноября 1920 года
         июнь — июль 1917 года
         Ночь с 4 на 5 июня 1993 года
@@ -332,6 +338,41 @@ def parse_date_key(label: str) -> tuple[int, int, int, int]:
     if match:
         season_name, year = match.groups()
         return int(year), SEASONS[season_name], 32, 1
+
+    # начало июня 1991 года, середина июня 1991 года, конец июня 1991 года
+    # День 0 ставится перед точными датами месяца,
+    # 16 — после первой половины месяца, 32 — после всех точных дат.
+    match = re.fullmatch(
+        r"(начало|середина|конец) ([а-яё]+) (\d{1,4}) года",
+        value,
+    )
+    if match:
+        part_name, month_name, year = match.groups()
+
+        if month_name not in MONTHS:
+            raise ValueError(f"Не удалось распознать дату: {label!r}")
+
+        month = MONTHS[month_name]
+
+        if part_name == "начало":
+            return int(year), month, 0, 1
+        if part_name == "середина":
+            return int(year), month, 16, 1
+        return int(year), month, 32, 1
+
+    # начало 1998 года, середина 1998 года, конец 1998 года
+    # Помещаются внутри года относительно точных дат:
+    # начало — перед январём, середина — перед июлем,
+    # конец — после декабря и перед блоком «только год».
+    match = re.fullmatch(r"(начало|середина|конец) (\d{1,4}) года", value)
+    if match:
+        part_name, year = match.groups()
+
+        if part_name == "начало":
+            return int(year), 1, 0, 1
+        if part_name == "середина":
+            return int(year), 7, 0, 1
+        return int(year), 12, 32, 1
 
     # июнь 1991 года
     match = re.fullmatch(r"([а-яё]+) (\d{1,4}) года", value)
