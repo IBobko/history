@@ -1,0 +1,30 @@
+# Administrator installs this root-owned in /etc/project-deploy/history.compose.yml.
+# history-deploy only replaces the literal image tag; repository Compose is never run as root.
+name: history-archive
+services:
+  web:
+    image: history-archive:2026-10-29-v1
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:3100:3000"
+    environment:
+      ARCHIVE_ROOT: /archive/current
+      SITE_URL: https://todo100.ru
+    volumes:
+      - type: bind
+        source: ../content
+        target: /archive
+        read_only: true
+        bind:
+          create_host_path: false
+    mem_limit: 768m
+    cpus: 1.5
+    pids_limit: 256
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

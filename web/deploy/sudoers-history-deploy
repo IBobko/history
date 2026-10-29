@@ -1,0 +1,1 @@
+deploy ALL=(root) NOPASSWD: /usr/local/sbin/history-deploy check, /usr/local/sbin/history-deploy content, /usr/local/sbin/history-deploy code

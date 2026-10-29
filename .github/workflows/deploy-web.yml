@@ -1,0 +1,64 @@
+name: Deploy archive application
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/deploy-web.yml'
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/deploy-web.yml'
+  workflow_dispatch:
+    inputs:
+      check_only:
+        description: 'Run checks without building or replacing the server image'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: history-application
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci --no-audit --no-fund
+      - name: Test and validate
+        working-directory: web
+        run: |
+          npm test
+          npm run validate:archive
+          python3 -m unittest discover -s deploy/tests -v
+      - name: Build application and check types
+        working-directory: web
+        run: |
+          npm run build
+          npm run typecheck
+      - name: Deploy application or check access
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          CHECK_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.check_only }}
+        run: |
+          if [[ "$CHECK_ONLY" == true ]]; then
+            bash web/deploy/publish.sh check
+          else
+            bash web/deploy/publish.sh code
+          fi

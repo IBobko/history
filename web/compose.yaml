@@ -1,0 +1,44 @@
+name: history-archive
+services:
+  web:
+    image: history-archive:${IMAGE_TAG:-latest}
+    build:
+      context: .
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3100}:3000"
+    environment:
+      ARCHIVE_ROOT: /archive
+      SITE_URL: https://todo100.ru
+    volumes:
+      - type: bind
+        source: ../Russia
+        target: /archive/Russia
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ../USA
+        target: /archive/USA
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ../Common
+        target: /archive/Common
+        read_only: true
+        bind:
+          create_host_path: false
+    mem_limit: 768m
+    cpus: 1.5
+    pids_limit: 256
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

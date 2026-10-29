@@ -1,0 +1,77 @@
+name: Publish archive content
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Russia/**'
+      - 'USA/**'
+      - 'Common/**'
+      - '.github/workflows/deploy-content.yml'
+  pull_request:
+    paths:
+      - 'Russia/**'
+      - 'USA/**'
+      - 'Common/**'
+      - '.github/workflows/deploy-content.yml'
+  workflow_dispatch:
+    inputs:
+      check_only:
+        description: 'Check access and running site without publishing'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Separate queues avoid one workflow replacing the other's pending job.
+    # The root helper serializes both kinds of publication on the server.
+    concurrency:
+      group: history-content
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci --no-audit --no-fund
+      - name: Test importer and validate all content
+        working-directory: web
+        run: |
+          npm test
+          npm run validate:archive
+      - name: Coordinate mixed content and code changes
+        id: route
+        env:
+          BEFORE: ${{ github.event.before }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [[ "$EVENT" == push ]] && { [[ "$BEFORE" =~ ^0+$ ]] || git diff --name-only "$BEFORE" "$GITHUB_SHA" -- web .github/workflows/deploy-web.yml | grep -q .; }; then
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+            echo 'Content will be published together with the application workflow.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish content or check access
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.route.outputs.publish == 'true'
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          CHECK_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.check_only }}
+        run: |
+          if [[ "$CHECK_ONLY" == true ]]; then
+            bash web/deploy/publish.sh check
+          else
+            bash web/deploy/publish.sh content
+          fi
